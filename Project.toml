@@ -1,9 +1,22 @@
 name = "SMGDataPlotting"
 uuid = "8274dd80-1ba4-46c9-97c2-6afc01135c6e"
-authors = ["Nick Owens <owensnick@gmail.com> and contributors"]
 version = "1.0.0-DEV"
+authors = ["Nick Owens <owensnick@gmail.com> and contributors"]
+
+[deps]
+AlgebraOfGraphics = "cbdf2221-f076-402e-a563-3d30da359d67"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DataFramesMeta = "1313f7d8-7da2-5740-9ea0-a2ca25f37964"
+GenomicFeatures = "899a7d2d-5c61-547b-bef9-6698a8d05446"
+SMGReader = "1fcad8e2-2524-48d4-84b4-e3c1a79e288e"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
+GenomicFeatures = "3.0.0"
+SMGReader = "1.0.0"
+StatsBase = "0.34.9"
 julia = "1.6.7"
 
 [extras]
