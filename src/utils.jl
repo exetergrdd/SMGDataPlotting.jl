@@ -16,12 +16,12 @@ hapstrandkey(fr) = fr.haplotype .+ 10 * fr.strand
 
 function assignlevels(firereads::Vector{T}; haplotype=false, strand=false) where {T}
     leveldata = IntervalLevels()
-    if haplotype
+    if haplotype && strand
+        [getlevel(fr.lp:fr.rp, leveldata, hapstrandkey(fr)) for fr in firereads]
+    elseif haplotype
         [getlevel(fr.lp:fr.rp, leveldata, fr.haplotype) for fr in firereads]
     elseif strand
         [getlevel(fr.lp:fr.rp, leveldata, fr.strand) for fr in firereads]
-    elseif haplotype && strand
-        [getlevel(fr.lp:fr.rp, leveldata, hapstrandkey(fr)) for fr in firereads]
     else
         [getlevel(fr.lp:fr.rp, leveldata) for fr in firereads]
     end
