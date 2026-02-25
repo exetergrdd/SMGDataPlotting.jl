@@ -212,7 +212,7 @@ function as_region_sort_lt(regA, regB)
 end
 
 
-function smgbrowser()
+function smgbrowser(metadata=test_load())
 
 
     app = App() do session
@@ -268,7 +268,6 @@ function smgbrowser()
         #### load samples and targets
         genome = Bonito.Dropdown(["hg19", "hg38"], style=minimal_style)
         samples = Observable(Vector{DisplayTrack}())
-        metadata = test_load()
 
 
         ### load gene models
