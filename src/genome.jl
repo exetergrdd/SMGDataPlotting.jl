@@ -19,6 +19,18 @@ function bedhasheader(bedfile)
     hasheader
 end
 
+"""
+    loadbed(bedfile)
+
+Loads a BED file into a DataFrame. Handles standard BED files and those with headers.
+If no header is present, columns are named `:chrom`, `:start`, `:stop`, and optionally `:name`.
+
+# Arguments
+- `bedfile`: Path to the BED file.
+
+# Returns
+A `DataFrame` containing the BED file data.
+"""
 function loadbed(bedfile)
     if bedhasheader(bedfile)
         bdf = CSV.read(bedfile, DataFrame)
@@ -36,6 +48,17 @@ function loadbed(bedfile)
     bdf
 end
 
+"""
+    bedintervals(bdf)
+
+Converts a DataFrame of BED data (from `loadbed`) into a `GenomicIntervalCollection`.
+
+# Arguments
+- `bdf`: DataFrame containing BED data (must have `:chrom`, `:start`, `:stop` columns).
+
+# Returns
+A `GenomicIntervalCollection`.
+"""
 function bedintervals(bdf)
     sort!(bdf, [:chrom, :start, :stop])
     giv = @with bdf GenomicInterval.(:chrom, :start, :stop, '.', :name)
@@ -45,6 +68,18 @@ end
 
 exonmetadata(geneid, genename, starts, stops) = (; geneid, genename, starts, stops)
 
+"""
+    loadgenemodels(exondatafile; filter=:longest)
+
+Loads gene models (exon data) from a file.
+
+# Arguments
+- `exondatafile`: Path to the file containing exon data.
+- `filter`: Filter strategy (default `:longest`). Currently only supports selecting the longest isoform per gene.
+
+# Returns
+A `GenomicIntervalCollection` representing the gene models.
+"""
 function loadgenemodels(exondatafile; filter=:longest)
 
     exondata = CSV.read(exondatafile, DataFrame)
