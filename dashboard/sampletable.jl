@@ -70,7 +70,7 @@ function load_sampletable(sampletable_path::String)
     alldf = innerjoin(sampledf, filedf, on=:Sample)
 
     transform!(groupby(alldf, [:Sample, :Pipeline]), selectfirefile)
-    alldf.File = joinpath(sampletable["datadir"], alldf.File)
+    alldf.File = joinpath.(sampletable["datadir"], alldf.File)
 
     alldf
 end
