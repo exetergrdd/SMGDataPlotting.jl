@@ -23,7 +23,7 @@ function load_annotated_samples(yamlfile="test/samples.yaml")
     alldf = @subset(load_sampletable(yamlfile), :selected)
 
     alldf.FIRE = falses(size(alldf, 1))
-    alldf.Mods = Vector{Modification}[]
+    alldf.Mods = [Modification[] for _ in 1:size(alldf, 1)]
 
     for i in 1:size(alldf, 1)
         baminfo = autodetectbamdata(alldf.File[i])
