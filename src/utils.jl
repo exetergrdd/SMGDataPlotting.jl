@@ -1,39 +1,50 @@
 ### functions for fiber layout
 
-mutable struct IntervalLevels{T, F}
-    levels::Dict{T, Dict{Int, Vector{UnitRange{Int}}}}
-    maxlevel::Dict{T, Int}
+mutable struct IntervalLevels{T,F}
+    levels::Dict{T,Dict{Int,Vector{UnitRange{Int}}}}
+    maxlevel::Dict{T,Int}
     levelgroup::F
 end
 
-IntervalLevels(levelgroup = (r, rd) -> 0x00) = IntervalLevels(Dict{UInt8, Dict{Int, Vector{UnitRange{Int}}}}(), Dict{UInt8, Int}(), levelgroup)
+IntervalLevels(levelgroup=(r, rd) -> 0x00) = IntervalLevels(Dict{UInt8,Dict{Int,Vector{UnitRange{Int}}}}(), Dict{UInt8,Int}(), levelgroup)
 
 # recordlevels()    = IntervalLevels(Dict{UInt8, Dict{Int, Vector{Int}}}(), Dict{UInt8, Int}(), (r, rdata) -> 0x00)
 # haplotypelevels() = IntervalLevels(Dict{UInt8, Dict{Int, Vector{Int}}}(), Dict{UInt8, Int}(), (r, rdata) -> haplotype(r, rdata, 0x00))
 
+hapstrandkey(fr) = fr.haplotype .+ 10 * fr.strand
 
 
-
-function assignlevels(firereads::Vector{T}; haplotype=false) where {T}
+function assignlevels(firereads::Vector{T}; haplotype=false, strand=false) where {T}
     leveldata = IntervalLevels()
     if haplotype
         [getlevel(fr.lp:fr.rp, leveldata, fr.haplotype) for fr in firereads]
+    elseif strand
+        [getlevel(fr.lp:fr.rp, leveldata, fr.strand) for fr in firereads]
+    elseif haplotype && strand
+        [getlevel(fr.lp:fr.rp, leveldata, hapstrandkey(fr)) for fr in firereads]
     else
         [getlevel(fr.lp:fr.rp, leveldata) for fr in firereads]
     end
 end
 
 
-function getlevel(record, recorddata, levels::IntervalLevels)
+function assignlevels(intervals::Vector{GenomicInterval{T}}) where {T}
+
+    leveldata = IntervalLevels()
+    levels = [getlevel(GenomicFeatures.leftposition(interval):GenomicFeatures.rightposition(interval), leveldata) for interval in intervals]
+    levels
+end
+
+function getlevel(record::BamRecord, recorddata, levels::IntervalLevels)
     iv = (SMGReader.leftposition(record)+1):SMGReader.rightposition(recorddata)
     key = levels.levelgroup(record, recorddata)
 
-   getlevel(iv, levels, key)
+    getlevel(iv, levels, key)
 end
 
-function getlevel(iv, levels, key=0x00)
+function getlevel(iv, levels::IntervalLevels, key=0x00)
     if !haskey(levels.levels, key)
-        levels.levels[key] = Dict{Int, UnitRange{Int}}()
+        levels.levels[key] = Dict{Int,UnitRange{Int}}()
         levels.maxlevel[key] = 0
     end
 
@@ -85,11 +96,11 @@ function assign_interval_level!(interval, level_dict, max_level)
                 push!(level_dict[level], interval)
                 return level
             end
-        end    
+        end
     end
 
     # If no suitable level is found, create a new level
-    level_dict[max_level + 1] = [interval]
+    level_dict[max_level+1] = [interval]
     return max_level + 1
 end
 
@@ -108,5 +119,5 @@ function binvector(H::Vector{T}, δ) where {T}
         AH[end] += AH[end-1]
         te[end] += te[end-1]
     end
-    AH./te
+    AH ./ te
 end
