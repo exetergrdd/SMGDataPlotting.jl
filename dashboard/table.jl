@@ -26,10 +26,15 @@ function load_annotated_samples(yamlfile="test/samples.yaml")
     alldf.Mods = [Modification[] for _ in 1:size(alldf, 1)]
 
     for i in 1:size(alldf, 1)
-        baminfo = autodetectbamdata(alldf.File[i])
-        alldf.FIRE[i] = baminfo.hasfire
-        alldf.Mods[i] = collect(baminfo.mods)
+        try
+            baminfo = autodetectbamdata(alldf.File[i])
+            alldf.FIRE[i] = baminfo.hasfire
+            alldf.Mods[i] = collect(baminfo.mods)
+        catch
+            ### silently ignore
+        end
     end
+    alldf = @subset(alldf, :FIRE .| length.(:Mods) .> 0)
 
     alldf
 end
@@ -45,9 +50,12 @@ function test_load()
 
     for (sample, file) in zip(samples, cramfiles)
 
-        craminfo = autodetectbamdata(file)
-
-        push!(df, ("Hap", sample, "EcoGII", false, "hg19", craminfo.hasfire, collect(craminfo.mods), file))
+        try
+            craminfo = autodetectbamdata(file)
+            push!(df, ("Hap", sample, "EcoGII", false, "hg19", craminfo.hasfire, collect(craminfo.mods), file))
+        catch
+            ### silently ignore
+        end
     end
 
     push!(df, ("Hap", "test", "EcoGII", false, "hg38", true, [mod_6mA, mod_5mC], ""))
