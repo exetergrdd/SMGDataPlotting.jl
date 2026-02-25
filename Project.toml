@@ -5,18 +5,26 @@ authors = ["Nick Owens <owensnick@gmail.com> and contributors"]
 
 [deps]
 AlgebraOfGraphics = "cbdf2221-f076-402e-a563-3d30da359d67"
+Bonito = "824d6782-a2ef-11e9-3a09-e5662e0c26f8"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DataFramesMeta = "1313f7d8-7da2-5740-9ea0-a2ca25f37964"
 GenomicFeatures = "899a7d2d-5c61-547b-bef9-6698a8d05446"
+Hyperscript = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
 SMGReader = "1fcad8e2-2524-48d4-84b4-e3c1a79e288e"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
+WidgetsBase = "eead4739-05f7-45a1-878c-cee36b57321c"
 
 [compat]
+Bonito = "4.2.0"
 GenomicFeatures = "3.0.0"
+Hyperscript = "0.0.5"
 SMGReader = "1.0.0"
 StatsBase = "0.34.9"
+WGLMakie = "0.13.8"
+WidgetsBase = "0.1.4"
 julia = "1.6.7"
 
 [extras]
