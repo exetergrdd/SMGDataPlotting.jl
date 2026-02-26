@@ -48,7 +48,7 @@ extend(iv, p=2, l=length(iv), ex=Int(round(p * l))) = (max(1, iv.start .- ex)):(
     end
 end
 
-function browserplot(chrom, loc, displaytracks, sampletable; genemodels=nothing, datacache=Dict{DataCacheKey,Vector{SMGDataPlotting.ModFireRead}}())
+function browserplot(chrom, loc, displaytracks, sampletable; genemodels=nothing, datacache=Dict{DataCacheKey,Vector{SMGDataPlotting.ModFireRead}}(), plotwidth=1800, trackheight=200)
 
     exloc = extend(loc, 2) # pre-extend for fetching data
     @show chrom, loc, exloc, typeof(genemodels)
@@ -69,7 +69,7 @@ function browserplot(chrom, loc, displaytracks, sampletable; genemodels=nothing,
             leveldict[key][levelkey] = assignlevels(datacache[key], haplotype=dt.byhap, strand=dt.bystrand)
         end
     end
-    config = (size=(1000, 1000), axisheight=Dict(:data => Fixed(200), :genemodel => Fixed(50)))
+    config = (size=(plotwidth, trackheight), axisheight=Dict(:data => Fixed(trackheight), :genemodel => Fixed(50)))
     figure = Figure(size=config.size)
 
     #### assess plot rows where each display track has a plot row
