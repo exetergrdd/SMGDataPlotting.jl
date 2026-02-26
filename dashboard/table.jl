@@ -512,10 +512,10 @@ function smgbrowser(metadata=test_load())
 end
 
 
-function startserver(port=8888)
-    app = smgbrowser
+function startserver(app, port=8888)
+    # app = smgbrowser
     println("Starting server on http://localhost:$port")
-    server = Bonito.Server(app, "127.0.0.1", port)
+    server = Bonito.Server(app, "0.0.0.0", port)
     server
 end
 
