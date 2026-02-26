@@ -20,7 +20,7 @@ end
 
 
 function load_annotated_samples(yamlfile="test/samples.yaml")
-    alldf = @subset(load_sampletable(yamlfile), :selected)
+    alldf = @subset(load_sampletable(yamlfile), :selected .| (:study .== "ZNF808"))
 
     alldf.FIRE = falses(size(alldf, 1))
     alldf.Mods = [Modification[] for _ in 1:size(alldf, 1)]
