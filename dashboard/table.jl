@@ -20,7 +20,7 @@ end
 
 
 function load_annotated_samples(yamlfile="test/samples.yaml")
-    alldf = @subset(load_sampletable(yamlfile), :selected .| (:study .== "ZNF808"))
+    alldf = @subset(load_sampletable(yamlfile), :selected)
 
     alldf.FIRE = falses(size(alldf, 1))
     alldf.Mods = [Modification[] for _ in 1:size(alldf, 1)]
@@ -441,11 +441,31 @@ function smgbrowser(metadata=test_load())
             end
         end
 
+
+        #### figure size controls
+        plotwidthinput = TextField("1800", style=minimal_style)
+        trackheightinput = TextField("200", style=minimal_style)
+
+        plotwidth = lift(plotwidthinput.value) do val
+            try
+                parse(Int, val)
+            catch
+                1800
+            end
+        end
+        trackheight = lift(trackheightinput.value) do val
+            try
+                parse(Int, val)
+            catch
+                200
+            end
+        end
+
         mainplot = lift(chrom, start, stop) do chrom, start, stop
             if isempty(samples[]) || (chrom == "chr1" && start == 1 && stop == 1000)
                 DOM.div("")
             else
-                DOM.div(browserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs))
+                DOM.div(browserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[]))
             end
         end
 
@@ -507,16 +527,34 @@ function smgbrowser(metadata=test_load())
                 ),
                 open=true
             ),
+            DOM.details(
+                DOM.summary(DOM.span(
+                    "Figure Size",
+                    style="font-size: 1.5em; font-weight: 600;"
+                )),
+                DOM.div(
+                    DOM.div("Plot width: ", plotwidthinput),
+                    DOM.div("Track height: ", trackheightinput),
+                    style="""
+                        display: flex;
+                        gap: 0.5rem;
+                        align-items: center;
+                    """
+                ),
+                open=false
+            ),
             mainplot
         )
     end
 end
 
 
-function startserver(app, port=8888)
-    # app = smgbrowser
-    println("Starting server on http://localhost:$port")
-    server = Bonito.Server(app, "0.0.0.0", port)
+function startserver(app, port=8080, ip="127.0.0.1")
+    println("Starting server on http://$ip:$port")
+    server = Bonito.Server(app, ip, port)
     server
 end
 
+app = smgbrowser(test_load());
+close(server)
+server = startserver(app)
