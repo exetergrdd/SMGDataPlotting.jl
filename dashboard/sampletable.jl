@@ -12,7 +12,7 @@ function metadatafields(sampletable)
 end
 
 function selectfirefile(df)
-    fire_cram_ind = df.FileClass .== "fire_cram"
+    fire_cram_ind = df.FileClass .∈ Ref(Set(["fire_cram", "haplotagged_cram"]))
     if any(fire_cram_ind)
         return (; selected=fire_cram_ind)
     else
