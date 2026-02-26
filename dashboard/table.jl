@@ -443,21 +443,21 @@ function smgbrowser(metadata=test_load())
 
 
         #### figure size controls
-        plotwidthinput = TextField("1800", style=minimal_style)
-        trackheightinput = TextField("200", style=minimal_style)
+        plotwidthinput = TextField("1700", style=minimal_style)
+        trackheightinput = TextField("400", style=minimal_style)
 
         plotwidth = lift(plotwidthinput.value) do val
             try
                 parse(Int, val)
             catch
-                1800
+                1700
             end
         end
         trackheight = lift(trackheightinput.value) do val
             try
                 parse(Int, val)
             catch
-                200
+                400
             end
         end
 
