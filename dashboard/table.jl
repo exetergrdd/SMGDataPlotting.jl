@@ -35,7 +35,8 @@ function load_annotated_samples(yamlfile="test/samples.yaml")
         end
     end
     alldf = @subset(alldf, :FIRE .| length.(:Mods) .> 0)
-
+    excludefields = ["selected", "notes"]
+    alldf = alldf[!, setdiff(names(alldf), excludefields)]
     alldf
 end
 
@@ -68,7 +69,7 @@ function loadgenedata(genome="hg19", host=gethostname())
         if genome == "hg19"
             gene_ivs = loadgenemodels("/penrose/resource/human/hg19/gencode.v45lift37.annotation.exondata.tsv.gz")
         elseif genome == "hg38"
-            gene_ivs = loadgenemodels("/penrose/resource/human/hg38/gencode.v49.annotation.exondata.gtf.gz")
+            gene_ivs = loadgenemodels("/penrose/resource/human/hg38/gencode.v43.annotation.exondata.tsv.gz")
         end
     else
         if genome == "hg19"
