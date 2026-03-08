@@ -12,7 +12,8 @@ using CairoMakie
 
 using GenomicFeatures
 
-export pilereads, binvector, firepile, collectfire, assignlevels, loadbed, bedintervals, bedplot, loadgenemodels, filterreads, combinereads, plotgenemodels, fireplot, modplot, directrnastackplot, directrna_blockplot
+export pilereads, binvector, firepile, collectfire, assignlevels, loadbed, bedintervals, bedplot, loadgenemodels, filterreads, combinereads,
+    plotgenemodels, fireplot, modplot, directrnastackplot, directrna_blockplot
 
 include("data.jl")
 include("utils.jl")
