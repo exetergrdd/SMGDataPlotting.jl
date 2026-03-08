@@ -204,8 +204,8 @@ function smgbrowserdirectrna(metadata)
                 # DOM.div(browserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[]))
                 #             smgbrowserplot(chrom, loc, displaytracks, sampletable; genemodels=nothing, datacache=Dict{DataCacheKey,Vector{T}}(), plotwidth=1800, trackheight=200,
                 # datafun=SMGDataPlotting.collectmodsfire, dataplotfun=dataplot, internaltitlefun=internaltitle_stencilling)
-                DOM.div(smgbrowserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[]),
-                    datacachetype=SMGDataPlotting.DirectRNAReadAlignBlock, datafun=SMGDataPlotting.collectdirectrnaablock, dataplotfun=dataplot_directrna, internaltitlefun=internaltitle_directRNA)
+                DOM.div(smgbrowserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[],
+                    datacachetype=SMGDataPlotting.DirectRNAReadAlignBlock, datafun=SMGDataPlotting.collectdirectrnaablock, dataplotfun=dataplot_directrna, internaltitlefun=internaltitle_directRNA))
             end
         end
 
