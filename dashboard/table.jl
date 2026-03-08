@@ -8,7 +8,7 @@ using GenomicFeatures
 
 include("sampletable.jl")
 include("appplot.jl")
-
+include("directrna_app.jl")
 
 function autodetectbamdata(bampath)
     htsdata = autodetecthtsdata(bampath)
