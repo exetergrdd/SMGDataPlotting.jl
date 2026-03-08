@@ -214,24 +214,31 @@ end
 # string(sample, "  Tracktype: ", dt.tracktype, " Haplotype: ", h, " Strand: ", s))
 
 function internaltitle_stencilling(samplerow, tracktype, h, s)
+    @show samplerow
     return string(samplerow.Sample, "  Tracktype: ", tracktype, " Haplotype: ", h, " Strand: ", s)
 end
 
-function internaltitle_directRNA(samplerow, tracktype, h, s)
-    return string(samplerow.Sample, "  PCW: ", samplerow.pcw, " Age: ", samplerow.age, " Tracktype: ", tracktype, " Strand: ", s)
+function internaltitle_directRNA(samplerow, tracktype, h=nothing, s=nothing)
+    display(samplerow)
+
+    haplabel = isnothing(h) ? "" : string(" Haplotype: ", h)
+    strandlabel = isnothing(s) ? "" : string(" Strand: ", s)
+
+    return string(samplerow.Sample, "  PCW: ", samplerow.pcw, " Sex: ", samplerow.sex, haplabel, strandlabel)
 end
 
-@inline function dataplot_directrna(chrom, loc, frs, levels, tracktype, hap, strand, ax)
+@inline function dataplot_directrna(chrom, loc, frs, levels, tracktype, hap, strand, ax, exloc=loc)
 
     @show chrom, loc, tracktype, hap, strand
     if tracktype == :BlockPlot
 
         #### here implement fireplot with levels
-        directrnastackplot(chrom, loc, frs, levels; hap=hap, ax=ax)
+        directrna_blockplot(chrom, loc, frs, levels; ax=ax, exloc=exloc)
     else
 
         # collectdirectrnaablock
-        directrnastackplot(chrom, loc, frs, levels; mod=tracktype, ax=ax)
+
+        directrnastackplot(chrom, loc, frs, levels; ax=ax, exloc=exloc)
     end
 end
 
@@ -241,7 +248,7 @@ function smgbrowserplot(chrom, loc, displaytracks, sampletable; genemodels=nothi
 
     @show datafun, dataplotfun, internaltitlefun
 
-    exloc = extend(loc, 2) # pre-extend for fetching data
+    exloc = extend(loc, 4) # pre-extend for fetching data
     @show chrom, loc, exloc, typeof(genemodels)
 
     axes = Dict{Int,Axis}()
@@ -252,7 +259,9 @@ function smgbrowserplot(chrom, loc, displaytracks, sampletable; genemodels=nothi
         key = DataCacheKey(dt.sampleindex, chrom, loc)
         if !haskey(datacache, key)
             println("Collecting data for $(sampletable[dt.sampleindex, :Sample]): $key")
-            datacache[key] = datafun(dt.file, chrom, exloc, byhap=dt.byhap, bystrand=dt.bystrand)
+            println("                    file: ", dt.file)
+
+            datacache[key] = datafun(dt.file, chrom, exloc)
             leveldict[key] = Dict{LevelKey,Vector{Int}}()
         end
         levelkey = LevelKey(dt.byhap, dt.bystrand)
@@ -260,6 +269,8 @@ function smgbrowserplot(chrom, loc, displaytracks, sampletable; genemodels=nothi
             leveldict[key][levelkey] = assignlevels(datacache[key], haplotype=dt.byhap, strand=dt.bystrand)
         end
     end
+
+
     config = (size=(plotwidth, trackheight), axisheight=Dict(:data => Fixed(trackheight), :genemodel => Fixed(50)))
     figure = Figure(size=config.size)
 
@@ -325,7 +336,7 @@ function smgbrowserplot(chrom, loc, displaytracks, sampletable; genemodels=nothi
                 row = axesrange[1] + axc
                 ax = constructaxis(figure, row, 1, datatype=:data, config=config, internaltitle=internaltitlefun(sampletable[dt.sampleindex, :], dt.tracktype, h, s))
                 totalheight += config.axisheight[:data].x
-                dataplotfun(chrom, loc, frs, levels, dt.tracktype, h, s, ax)
+                dataplotfun(chrom, loc, frs, levels, dt.tracktype, h, s, ax, exloc)
                 axes[row] = ax
                 axc += 1
             end
@@ -336,9 +347,9 @@ function smgbrowserplot(chrom, loc, displaytracks, sampletable; genemodels=nothi
             for s in rowstrand[dt.row[]]
                 levels = leveldict[key][LevelKey(false, true)]
                 row = axesrange[1] + axc
-                ax = constructaxis(figure, row, 1, datatype=:data, config=config, internaltitle=internaltitlefun(sampletable[dt.sampleindex, :], dt.tracktype, h, s))
+                ax = constructaxis(figure, row, 1, datatype=:data, config=config, internaltitle=internaltitlefun(sampletable[dt.sampleindex, :], dt.tracktype, nothing, s))
                 totalheight += config.axisheight[:data].x
-                dataplotfun(chrom, loc, frs, levels, dt.tracktype, nothing, s, ax)
+                dataplotfun(chrom, loc, frs, levels, dt.tracktype, nothing, s, ax, exloc)
                 axes[row] = ax
                 axc += 1
             end
@@ -348,9 +359,9 @@ function smgbrowserplot(chrom, loc, displaytracks, sampletable; genemodels=nothi
             for h in rowhap[dt.row[]]
                 levels = leveldict[key][LevelKey(true, false)]
                 row = axesrange[1] + axc
-                ax = constructaxis(figure, row, 1, datatype=:data, config=config, internaltitle=internaltitlefun(sampletable[dt.sampleindex, :], dt.tracktype, h, s))
+                ax = constructaxis(figure, row, 1, datatype=:data, config=config, internaltitle=internaltitlefun(sampletable[dt.sampleindex, :], dt.tracktype, h))
                 totalheight += config.axisheight[:data].x
-                dataplotfun(chrom, loc, frs, levels, dt.tracktype, h, nothing, ax)
+                dataplotfun(chrom, loc, frs, levels, dt.tracktype, h, nothing, ax, exloc)
 
                 axes[row] = ax
                 axc += 1
@@ -360,9 +371,10 @@ function smgbrowserplot(chrom, loc, displaytracks, sampletable; genemodels=nothi
 
             row = axesrange[1]
             levels = leveldict[key][LevelKey(false, false)]
-            ax = constructaxis(figure, row, 1, datatype=:data, config=config, internaltitle=string(sample, "  Tracktype: ", dt.tracktype))
+            ax = constructaxis(figure, row, 1, datatype=:data, config=config, internaltitle=internaltitlefun(sampletable[dt.sampleindex, :], dt.tracktype))
             totalheight += config.axisheight[:data].x
-            dataplotfun(chrom, loc, frs, levels, dt.tracktype, nothing, nothing, ax)
+
+            dataplotfun(chrom, loc, frs, levels, dt.tracktype, nothing, nothing, ax, exloc)
             axes[row] = ax
         end
     end
