@@ -262,6 +262,9 @@ function smgbrowserplot(chrom, loc, displaytracks, sampletable; genemodels=nothi
             println("                    file: ", dt.file)
 
             datacache[key] = datafun(dt.file, chrom, exloc)
+            if isempty(datacache[key])
+                @warn "Data load empty for $key"
+            end
             leveldict[key] = Dict{LevelKey,Vector{Int}}()
         end
         levelkey = LevelKey(dt.byhap, dt.bystrand)

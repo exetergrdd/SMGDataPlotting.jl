@@ -38,7 +38,7 @@ end
 end
 
 
-function directrnastackplot(chrom, loc, readdata, leveldata; f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), ymax=1.1 * maximum(leveldata), exloc=loc)
+function directrnastackplot(chrom, loc, readdata, leveldata; f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), exloc=loc)
 
 
     readpile = zeros(UInt16, length(exloc))
@@ -73,6 +73,7 @@ function directrnastackplot(chrom, loc, readdata, leveldata; f=Figure(), axv=1, 
     end
 
     hidespines!(ax, :l, :t, :r, :b)
+    ymax = 1.1 * maximum(readpile)
     ylims!(ax, 0.0, ymax)
     axislegend(ax, framevisible=false, position=:rc)
     xlims!(ax, first(loc), last(loc))
