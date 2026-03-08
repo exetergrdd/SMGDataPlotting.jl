@@ -188,6 +188,101 @@ end
 
 
 
+
+"""
+    DirectRNARead
+
+Struct representing a single read with modified bases and FIRE information.
+
+# Fields
+- `lp::Int`: Left position of the read.
+- `rp::Int`: Right position of the read.
+- `strand::Bool`: Strand of the read.
+- `moddata::Dict{Modification, Vector{Int}}`: List of modification data.
+"""
+
+struct DirectRNARead
+    lp::Int
+    rp::Int
+    strand::Bool
+    moddata::Dict{Modification,Vector{Int}}
+end
+
+
+struct DirectRNAReadAlignBlock
+    lp::Int
+    rp::Int
+    strand::Bool
+    moddata::Dict{Modification,Vector{Int}}
+    alignblocks::Vector{SMGReader.AlignBlock}
+end
+
+
+function collectdirectrna(file, chrom, loc)
+    reader = open(HTSFileReader, file)
+    recorddata = DirectRNA(AuxMapMod())
+
+    reads = Vector{DirectRNARead}()
+
+    for record in eachintersection(reader, chrom, loc)
+        validflag(record) || continue
+        processread!(record, recorddata) || continue
+
+        moddata = Dict{Modification,Vector{Int}}()
+
+        for mi in ModIterator(record, recorddata)
+            if mi.prob > 0.9 * 255
+                genpos = genomecoords(mi.pos, record, recorddata, onebased=true)
+                if !iszero(genpos)
+                    haskey(moddata, mi.mod) || (moddata[mi.mod] = Int[])
+                    push!(moddata[mi.mod], genpos)
+                end
+            end
+        end
+
+        fr = DirectRNARead(SMGReader.leftposition(record), SMGReader.rightposition(recorddata), ispositive(record), moddata)
+        push!(reads, fr)
+
+    end
+    close(reader)
+
+    reads
+end
+
+
+function collectdirectrnaablock(file, chrom, loc)
+    reader = open(HTSFileReader, file)
+    recorddata = DirectRNAAlignBlocks(AuxMapMod())
+
+    reads = Vector{DirectRNAReadAlignBlock}()
+
+    for record in eachintersection(reader, chrom, loc)
+        validflag(record) || continue
+        processread!(record, recorddata) || continue
+
+        moddata = Dict{Modification,Vector{Int}}()
+
+        for mi in ModIterator(record, recorddata)
+            if mi.prob > 0.9 * 255
+                genpos = genomecoords(mi.pos, record, recorddata, onebased=true)
+                if !iszero(genpos)
+                    haskey(moddata, mi.mod) || (moddata[mi.mod] = Int[])
+                    push!(moddata[mi.mod], genpos)
+                end
+            end
+        end
+
+        fr = DirectRNAReadAlignBlock(SMGReader.leftposition(record), SMGReader.rightposition(recorddata), ispositive(record), moddata, copy(recorddata.alignblocks))
+        push!(reads, fr)
+
+    end
+    close(reader)
+
+    sort!(reads, by=fr -> fr.lp - fr.rp)
+
+    reads
+end
+
 # function fireelements(file, chrom, loc)
 #     reader = open(HTSFileReader, file)
 #     recorddata = StencillingData(AuxMapModFire())
