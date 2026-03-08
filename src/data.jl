@@ -215,6 +215,7 @@ struct DirectRNAReadAlignBlock
     strand::Bool
     moddata::Dict{Modification,Vector{Int}}
     alignblocks::Vector{SMGReader.AlignBlock}
+    haplotype::UInt8
 end
 
 
@@ -250,7 +251,7 @@ function collectdirectrna(file, chrom, loc)
 end
 
 
-function collectdirectrnaablock(file, chrom, loc)
+function collectdirectrnaablock(file, chrom, loc,)
     reader = open(HTSFileReader, file)
     recorddata = DirectRNAAlignBlocks(AuxMapMod())
 
@@ -272,7 +273,7 @@ function collectdirectrnaablock(file, chrom, loc)
             end
         end
 
-        fr = DirectRNAReadAlignBlock(SMGReader.leftposition(record), SMGReader.rightposition(recorddata), ispositive(record), moddata, copy(recorddata.alignblocks))
+        fr = DirectRNAReadAlignBlock(SMGReader.leftposition(record), SMGReader.rightposition(recorddata), ispositive(record), moddata, copy(recorddata.alignblocks), 0x00)
         push!(reads, fr)
 
     end
