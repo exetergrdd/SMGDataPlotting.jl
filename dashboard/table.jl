@@ -558,3 +558,21 @@ end
 # app = smgbrowser(test_load());
 # close(server)
 # server = startserver(app)
+
+
+function runpenrose()
+
+
+    serv = Bonito.Server("127.0.0.1", 8080; proxy_url="http://penrose.ex.ac.uk/")
+
+    ### stencilling
+    metadata = load_annotated_samples("/home/ndlo201/ont/resource/samples.yaml")
+    app = smgbrowser(metadata)
+    route!(serv, "/" => app)
+
+    directmeta = load_directrna_sampletable("/penrose/projects/ont/directrna/fetalpancreas/samples.yaml")
+    directapp = smgbrowserdirectrna(directmeta)
+    route!(serv, "/directrna" => directapp)
+
+    serv, metadata, app, directmeta, directapp
+end
