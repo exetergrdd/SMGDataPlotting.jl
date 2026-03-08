@@ -76,3 +76,54 @@ function load_sampletable(sampletable_path::String)
 end
 
 # alldf = load_sampletable("test/samples.yaml");
+
+
+
+function load_directrna_sampletable(sampletable_path::String)
+
+    sampletable = YAML.load_file(sampletable_path)
+    @show length(sampletable["samples"])
+
+    sampletable["samples"] = filter(((k, v),) -> get(v, "include", true), sampletable["samples"])
+    @show length(sampletable["samples"])
+
+    fields = metadatafields(sampletable)
+    samples = sampletable["samples"]
+    samplesnames = sort(collect(keys(samples)))
+
+    @show fields
+    @show samplesnames
+    samples
+
+    sampledf = [DataFrame(Sample=samplesnames) DataFrame(mapreduce(f -> [get(samples[s]["metadata"], f, missing) for s in samplesnames], hcat, fields), fields)]
+    for n in names(sampledf)
+        sampledf[!, n] = identity.(replace(sampledf[!, n], "N/A" => missing))
+    end
+    sampledf.pcw = [ismissing(pcw) ? missing : parse(Int, pcw) for pcw in sampledf.pcw]
+    sampledf.rin = [ismissing(rin) ? missing : parse(Float64, rin) for rin in sampledf.rin]
+    sampledf.tapestation = [ismissing(tapestation) ? missing : parse(Int, tapestation) for tapestation in sampledf.tapestation]
+    sampledf.direct_run .= "Y"
+    sampledf.Study .= "FetalPancreas"
+
+    mandatory_fields = ["Study", "Sample", "pcw", "sex", "rin", "tapestation"]
+
+    sampledf = [sampledf[!, mandatory_fields] sampledf[!, setdiff(names(sampledf), mandatory_fields)]][!, Not(:direct_run)]
+
+    filedf = DataFrame(Sample=Int[], Pipeline=String[], Genome=String[], FileClass=String[], File=String[])
+
+    for (sample, data) in sampletable["samples"]
+        for (pipeline, files) in data["files"]
+            genome = data["genome_build"]
+            for (fileclass, file) in files
+                push!(filedf, (sample, pipeline, genome, fileclass, file))
+            end
+        end
+    end
+    filedf = @subset(filedf, :FileClass .∈ Ref(Set(["genome_hg38_sort_bam"])))
+
+    alldf = innerjoin(sampledf, filedf, on=:Sample)
+    alldf.File = joinpath.(sampletable["datadir"], alldf.File)
+    alldf
+end
+
+# load_directrna_sampletable("test/directrna_samples.yaml")
