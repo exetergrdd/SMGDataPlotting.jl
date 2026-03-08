@@ -237,7 +237,9 @@ end
 
 
 function smgbrowserplot(chrom, loc, displaytracks, sampletable; genemodels=nothing, datacachetype=SMGDataPlotting.ModFireRead, datacache=Dict{DataCacheKey,Vector{datacachetype}}(), plotwidth=1800, trackheight=200,
-    datafun=SMGDataPlotting.collectmodsfire, dataplotfun=dataplot, internaltitlefun=internaltitle_stencilling)
+    datafun=SMGDataPlotting.collectmodsfire, dataplotfun=dataplot_directrna, internaltitlefun=internaltitle_directRNA)
+
+    @show datafun, dataplotfun, internaltitlefun
 
     exloc = extend(loc, 2) # pre-extend for fetching data
     @show chrom, loc, exloc, typeof(genemodels)
