@@ -123,6 +123,10 @@ function load_directrna_sampletable(sampletable_path::String)
 
     alldf = innerjoin(sampledf, filedf, on=:Sample)
     alldf.File = joinpath.(sampletable["datadir"], alldf.File)
+
+    # push!(alldf, ("FetalPancreas", 2, 1, "M", missing, missing, missing, "pipe", "hg38", "test", "/Users/ndlo201/projects/directrna/dorado52/12252_RNA/basecall.calledmods.genome.hg38.sort.bam"))
+    sort!(alldf, [:pcw, :sex])
+
     alldf
 end
 
