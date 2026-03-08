@@ -18,6 +18,8 @@ include("data.jl")
 include("utils.jl")
 include("genome.jl")
 include("stencillingplots.jl")
+include("directrnaplots.jl")
+
 
 
 
