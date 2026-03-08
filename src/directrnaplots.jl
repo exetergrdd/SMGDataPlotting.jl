@@ -16,24 +16,47 @@ const MOD_LABELS = Dict(mod_6mA => "m6A", mod_5mC => "m5C", mod_inosine => "inos
 # chrom, loc = "chr20", 22578998:22587490
 # drd = collectdirectrna(file, chrom, loc)
 
-function directrnastackplot(chrom, loc, readdata, leveldata; f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), ymax=1.1 * maximum(leveldata))
+@inline function incpile!(a, pile, start, off=1)
+    i = (a + off) - start + 1
+    @inbounds (1 <= i <= length(pile)) && (pile[i] += 1)
+    pile
+end
+
+@inline function readextentpile!(pile, r, rdata, loc)
+    lp = leftposition(r)
+    rp = rightposition(rdata)
+    for a in lp:rp
+        incpile!(a, pile, loc.start)
+    end
+end
 
 
-    readpile = zeros(UInt16, length(loc))
-    modpile = zeros(UInt16, length(loc), length(DIRECT_RNA_MODS))
+@inline function alignmappile!(pile, rdata, loc)
+    for a in rdata.alignmap
+        !iszero(a) && incpile!(a, pile, loc.start)
+    end
+end
+
+
+function directrnastackplot(chrom, loc, readdata, leveldata; f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), ymax=1.1 * maximum(leveldata), exloc=loc)
+
+
+    readpile = zeros(UInt16, length(exloc))
+    modpile = zeros(UInt16, length(exloc), length(DIRECT_RNA_MODS))
 
     @inbounds for rd in readdata
 
-        rlp = max(1, rd.lp - first(loc) + 1)
-        rrp = min(length(loc), rd.rp - first(loc) + 1)
-
-        readpile[rlp:rrp] .+= 1
+        for ab in rd.alignblocks
+            lp = max(1, ab.start + 1 - first(exloc) + 1)
+            rp = min(length(exloc), ab.stop - first(exloc) + 1)
+            readpile[lp:rp] .+= 1
+        end
 
         for (k, m) in enumerate(DIRECT_RNA_MODS)
             if haskey(rd.moddata, m)
                 for pos in rd.moddata[m]
-                    if first(loc) <= pos <= last(loc)
-                        modpile[pos-first(loc)+1, k] += 1
+                    if first(exloc) <= pos <= last(exloc)
+                        modpile[pos-first(exloc)+1, k] += 1
                     end
                 end
             end
@@ -42,11 +65,11 @@ function directrnastackplot(chrom, loc, readdata, leveldata; f=Figure(), axv=1, 
 
     cc = Makie.wong_colors()
 
-    band!(ax, loc, 0, readpile, color=:lightgrey)
-    for (k, m) in enumerate(mods)
+    band!(ax, exloc, 0, readpile, color=:lightgrey)
+    for (k, m) in enumerate(DIRECT_RNA_MODS)
         # barplot!(ax, loc, modpile[:, k], color=k > length(cc) ? :black : cc[k], label=string(m), width=20)
         color = k > length(cc) ? :black : cc[k]
-        band!(ax, loc, 0, modpile[:, k], color=color, label=MOD_LABELS[m], strokewidth=1, strokecolor=color)
+        band!(ax, exloc, 0, modpile[:, k], color=color, label=MOD_LABELS[m], strokewidth=1, strokecolor=color)
     end
 
     hidespines!(ax, :l, :t, :r, :b)
@@ -59,7 +82,7 @@ end
 
 
 
-function directrna_blockplot(chrom, loc, readdata, leveldata; f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), ymax=1.1 * maximum(leveldata))
+function directrna_blockplot(chrom, loc, readdata, leveldata; f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), ymax=1.1 * maximum(leveldata), exloc=loc)
 
 
     readrrect = mapreduce((l, read) -> [Rect(ab.start, l + (1 - 0.6) / 2, ab.stop - ab.start, 0.6) for ab in read.alignblocks], vcat, leveldata, readdata)
