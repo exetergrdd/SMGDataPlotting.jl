@@ -144,9 +144,6 @@ end
 function fireplot(chrom, loc, readdata, leveldata; hap=nothing, strand=nothing, f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), ymax=1.1 * maximum(leveldata))
     expand_fire = 1
 
-    @show ymax
-    display(leveldata)
-
 
     if !isnothing(hap) && !isnothing(strand)
         ind = [(r.haplotype == hap) && (r.strand == strand) for r in readdata]
