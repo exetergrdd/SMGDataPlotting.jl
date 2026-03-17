@@ -461,13 +461,37 @@ function smgbrowser(metadata=test_load())
             end
         end
 
-        mainplot = lift(chrom, start, stop) do chrom, start, stop
+        # plotcontainer = DOM.div("")
+
+        plotcontent = Observable(DOM.div("Select a region to plot..."))
+
+        plotcontainer = DOM.div(plotcontent)
+
+        onany(chrom, start, stop) do chrom, start, stop
+            # empty!(plotcontainer)
+            # plotcontainer.children = Any[]   # clear contents
+
+
+            # if isempty(samples[]) || (chrom[] == "chr1" && start[] == 1 && stop[] == 1000)
+            #     push!(plotcontainer, DOM.div(""))
+            # else
+            #     fig = browserplot(chrom[], start[]:stop[], samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[])
+            #     push!(plotcontainer, fig)
+            # end
             if isempty(samples[]) || (chrom == "chr1" && start == 1 && stop == 1000)
-                DOM.div("")
+                plotcontent[] = DOM.div("")
             else
-                DOM.div(browserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[]))
+                plotcontent[] = DOM.div(browserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[]))
             end
         end
+
+        # mainplot = lift(chrom, start, stop) do chrom, start, stop
+        #     if isempty(samples[]) || (chrom == "chr1" && start == 1 && stop == 1000)
+        #         DOM.div("")
+        #     else
+        #         DOM.div(browserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[]))
+        #     end
+        # end
 
 
         return DOM.div(
@@ -543,7 +567,7 @@ function smgbrowser(metadata=test_load())
                 ),
                 open=false
             ),
-            mainplot
+            plotcontainer
         )
     end
 end
@@ -555,7 +579,7 @@ function startserver(app, port=8080, ip="127.0.0.1")
     server
 end
 
-# app = smgbrowser(test_load());
+app = smgbrowser(test_load())
 # close(server)
 # server = startserver(app)
 
