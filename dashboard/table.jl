@@ -581,13 +581,13 @@ function startserver(app, port=8080, ip="127.0.0.1")
     server
 end
 
-app = smgbrowser(test_load())
+# app = smgbrowser(test_load())
+# # close(server)
+# server = startserver(app)
+# wait(server)
+
+
 # close(server)
-server = startserver(app)
-wait(server)
-
-
-close(server)
 
 
 
