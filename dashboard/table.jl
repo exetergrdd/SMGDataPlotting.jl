@@ -1,11 +1,13 @@
 using Bonito
 using WGLMakie
+using CairoMakie
 using DataFrames
 using Glob
 using SMGReader
 using SMGDataPlotting
 using GenomicFeatures
-
+using Base64
+WGLMakie.activate!()
 include("sampletable.jl")
 include("appplot.jl")
 include("directrna_app.jl")
@@ -446,6 +448,8 @@ function smgbrowser(metadata=test_load())
         plotwidthinput = TextField("1700", style=minimal_style)
         trackheightinput = TextField("400", style=minimal_style)
 
+        outputformat = Bonito.Dropdown(["Interactive", "PNG", "SVG"], style=minimal_style)
+
         plotwidth = lift(plotwidthinput.value) do val
             try
                 parse(Int, val)
@@ -483,7 +487,44 @@ function smgbrowser(metadata=test_load())
             else
                 #     fig = browserplot(chrom[], start[]:stop[], samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[])
 
-                plotcontent[] = browserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[])
+                fmt = outputformat.value[]
+
+
+                if fmt == "Interactive"
+                    WGLMakie.activate!()
+                else
+                    CairoMakie.activate!()
+                end
+
+                fig = browserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[])
+
+                if fmt == "Interactive"
+                    plotcontent[] = DOM.div(fig)
+                elseif fmt == "PNG"
+                    io = IOBuffer()
+                    show(io, MIME"image/png"(), fig)
+                    encoded = base64encode(take!(io))
+                    data = "data:image/png;base64," * String(encoded)
+                    plotcontent[] = DOM.img(src=data)
+                elseif fmt == "SVG"
+                    io = IOBuffer()
+                    show(io, MIME"image/svg+xml"(), fig)
+                    encoded = base64encode(take!(io))
+                    data = "data:image/svg+xml;base64," * String(encoded)
+                    plotcontent[] = DOM.img(src=data)
+                end
+
+                # fig = browserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[])
+                # io = IOBuffer()
+                # # save(io, fig, MIME("image/png"))
+
+                # io = IOBuffer()
+                # show(io, MIME"image/png"(), fig)
+                # encoded = base64encode(take!(io))
+                # data = "data:image/png;base64," * String(encoded)
+                # # show(io, MIME"image/svg+xml"(), fig)
+
+                # plotcontent[] = DOM.img(src=data)
             end
         end
 
@@ -555,12 +596,13 @@ function smgbrowser(metadata=test_load())
             ),
             DOM.details(
                 DOM.summary(DOM.span(
-                    "Figure Size",
+                    "Figure Output Options",
                     style="font-size: 1.5em; font-weight: 600;"
                 )),
                 DOM.div(
                     DOM.div("Plot width: ", plotwidthinput),
                     DOM.div("Track height: ", trackheightinput),
+                    DOM.div("Output format: ", outputformat),
                     style="""
                         display: flex;
                         gap: 0.5rem;
@@ -581,13 +623,13 @@ function startserver(app, port=8080, ip="127.0.0.1")
     server
 end
 
-# app = smgbrowser(test_load())
+app = smgbrowser(test_load())
 # # close(server)
-# server = startserver(app)
-# wait(server)
+server = startserver(app)
+wait(server)
 
 
-# close(server)
+close(server)
 
 
 
