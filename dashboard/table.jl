@@ -463,7 +463,7 @@ function smgbrowser(metadata=test_load())
 
         # plotcontainer = DOM.div("")
 
-        plotcontent = Observable(DOM.div("Select a region to plot..."))
+        plotcontent = Observable{Any}(DOM.div("Select a region to plot..."))
 
         plotcontainer = DOM.div(plotcontent)
 
@@ -481,7 +481,9 @@ function smgbrowser(metadata=test_load())
             if isempty(samples[]) || (chrom == "chr1" && start == 1 && stop == 1000)
                 plotcontent[] = DOM.div("")
             else
-                plotcontent[] = DOM.div(browserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[]))
+                #     fig = browserplot(chrom[], start[]:stop[], samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[])
+
+                plotcontent[] = browserplot(chrom, start:stop, samples[], samplecheckboxtable[], genemodels=genemodels[].gene_ivs, plotwidth=plotwidth[], trackheight=trackheight[])
             end
         end
 
@@ -581,7 +583,12 @@ end
 
 app = smgbrowser(test_load())
 # close(server)
-# server = startserver(app)
+server = startserver(app)
+wait(server)
+
+
+close(server)
+
 
 
 function runpenrose()
