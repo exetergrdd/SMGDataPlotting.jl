@@ -277,8 +277,14 @@ function plotgenemodels(chrom, loc, giv; f=Figure(), axh=1, axv=1, ax=Axis(f[axv
 
     intervals = [gi for gi in eachoverlap(giv, GenomicInterval(chrom, loc)) if genefilter(gi)]
     @show length(intervals)
-    levels = assignlevels(intervals)
-    display(levels)
+
+    if isempty(intervals)
+        levels = Int[]
+        maxlevel = 0
+    else
+        levels = assignlevels(intervals)
+        maxlevel = maximum(levels)
+    end
 
     row_height = 1
     row_spacing = 1.3
@@ -297,6 +303,6 @@ function plotgenemodels(chrom, loc, giv; f=Figure(), axh=1, axv=1, ax=Axis(f[axv
     xlims!(ax, first(loc), last(loc))
     hidespines!(ax, :r, :l, :t)
     ax.yticks = ([], [])
-    ylims!(ax, 1 + 0.5 - 1, maximum(levels) * (row_height + row_spacing) + 1)
-    f, maximum(levels)
+    ylims!(ax, 1 + 0.5 - 1, maxlevel * (row_height + row_spacing) + 1)
+    f, maxlevel
 end
