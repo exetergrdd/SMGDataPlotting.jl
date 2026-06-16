@@ -12,6 +12,8 @@ using CairoMakie
 
 using GenomicFeatures
 
+using GFReader
+
 export pilereads, binvector, firepile, collectfire, assignlevels, loadbed, bedintervals, bedplot, loadgenemodels, filterreads, combinereads,
     plotgenemodels, fireplot, modplot, directrnastackplot, directrna_blockplot
 
