@@ -49,6 +49,23 @@ struct ModFireRead
     haplotype::UInt8
 end
 
+
+struct ModAllFireRead
+    lp::Int
+    rp::Int
+    strand::Bool
+    mods_6mA::Vector{Int}
+    mods_5mC::Vector{Int}
+    mods_5hmC::Vector{Int}
+    un_mods_6mA::Vector{Int}
+    un_mods_5mC::Vector{Int}
+    un_mods_5hmC::Vector{Int}
+    nucs::Vector{NTuple{2,Int}}
+    msps::Vector{NTuple{3,Int}}
+    haplotype::UInt8
+end
+
+
 struct ReadLevels{T,L}
     reads::Vector{T}
     levels::Vector{L}
@@ -110,7 +127,7 @@ Collects modified bases (6mA, 5mC, 5hmC) and FIRE elements from a BAM/CRAM file 
 # Returns
 A NamedTuple `(;reads, levels)` containing the collected `ModFireRead` objects and their assigned levels.
 """
-function collectmodsfire(file, chrom, loc; byhap=false, bystrand=false, strictintersect=0)
+function collectmodsfire(file, chrom, loc; byhap=false, bystrand=false, strictintersect=0, mod_thresh=0.1, assign_no_hap=false)
     reader = open(HTSFileReader, file)
     recorddata = StencillingData(AuxMapModFire())
 
@@ -120,8 +137,107 @@ function collectmodsfire(file, chrom, loc; byhap=false, bystrand=false, strictin
     mods_5mC = Vector{Int}()
     mods_5hmC = Vector{Int}()
 
+    mod_threshes = Float64[]
 
-    for record in eachintersection(reader, chrom, loc)
+
+    for (k, record) in enumerate(eachintersection(reader, chrom, loc))
+
+        validflag(record) || continue
+        processread!(record, recorddata) || continue
+
+        if strictintersect > 0
+            lp = SMGReader.leftposition(record) + 1
+            rp = SMGReader.rightposition(recorddata)
+
+            ((lp + strictintersect < first(loc)) && (last(loc) < rp + strictintersect)) || continue
+        end
+
+
+
+        mods_6mA = Int[]
+        mods_5mC = Int[]
+        mods_5hmC = Int[]
+        total_mod = 0
+        total_unmod = 0
+
+        for mi in ModIterator(record, recorddata)
+            if mi.prob > 0.9 * 255
+
+                genpos = genomecoords(mi.pos, record, recorddata, onebased=true)
+                if !iszero(genpos)
+                    if mi.mod == mod_6mA
+                        push!(mods_6mA, genpos)
+                    elseif mi.mod == mod_5mC
+                        push!(mods_5mC, genpos)
+                    elseif mi.mod == mod_5hmC
+                        push!(mods_5hmC, genpos)
+                    end
+                end
+                total_mod += 1
+            else
+                total_unmod += 1
+            end
+        end
+        push!(mod_threshes, total_mod / (total_mod + total_unmod))
+        if total_mod / (total_mod + total_unmod) > mod_thresh
+            continue
+        end
+
+        firegenomecoords = firegenome(record, recorddata)
+
+        nucs = firegenomecoords(firenucs(record, recorddata))
+        msps = firegenomecoords(firemsps(record, recorddata))
+        
+        hap = haplotype(record, recorddata, ifelse(assign_no_hap, ifelse(iseven(k), 0x01, 0x02), 0x00))
+
+        fr = ModFireRead(SMGReader.leftposition(record), SMGReader.rightposition(recorddata), ispositive(record), mods_6mA, mods_5mC, mods_5hmC, collect(nucs), collect(msps), hap)
+        push!(reads, fr)
+
+    end
+    close(reader)
+    @time sort!(reads, by=fr -> fr.lp - fr.rp)
+    # levels = assignlevels(reads, haplotype=byhap, strand=bystrand)
+
+    ### now 
+    # (; reads, levels)
+    reads, mod_threshes
+end
+
+
+
+"""
+    collectmodsfire(file, chrom, loc; byhap=false)
+
+Collects modified bases (6mA, 5mC, 5hmC) and FIRE elements from a BAM/CRAM file for a specific genomic region.
+
+# Arguments
+- `file`: Path to the BAM/CRAM file.
+- `chrom`: Chromosome name.
+- `loc`: UnitRange representing the genomic locus.
+- `byhap`: Boolean to group reads by haplotype (default `false`).
+
+# Returns
+A NamedTuple `(;reads, levels)` containing the collected `ModFireRead` objects and their assigned levels.
+"""
+function collectmodsfire_unmod(file, chrom, loc; byhap=false, bystrand=false, strictintersect=0, mod_thresh=0.1, assign_no_hap=false)
+    reader = open(HTSFileReader, file)
+    recorddata = StencillingData(AuxMapModFire())
+
+    reads = Vector{ModAllFireRead}()
+
+    mods_6mA = Vector{Int}()
+    mods_5mC = Vector{Int}()
+    mods_5hmC = Vector{Int}()
+
+    un_mods_6mA = Vector{Int}()
+    un_mods_5mC = Vector{Int}()
+    un_mods_5hmC = Vector{Int}()
+
+    mod_threshes = Float64[]
+
+
+    for (k, record) in enumerate(eachintersection(reader, chrom, loc))
+
         validflag(record) || continue
         processread!(record, recorddata) || continue
 
@@ -138,11 +254,17 @@ function collectmodsfire(file, chrom, loc; byhap=false, bystrand=false, strictin
         mods_5mC = Int[]
         mods_5hmC = Int[]
 
-        for mi in ModIterator(record, recorddata)
-            if mi.prob > 0.9 * 255
+        un_mods_6mA = Int[]
+        un_mods_5mC = Int[]
+        un_mods_5hmC = Int[]
+        total_mod = 0
+        total_unmod = 0
 
-                genpos = genomecoords(mi.pos, record, recorddata, onebased=true)
-                if !iszero(genpos)
+        for mi in ModIterator(record, recorddata)
+
+            genpos = genomecoords(mi.pos, record, recorddata, onebased=true)
+            if genpos > 1
+                if mi.prob > 0.9 * 255
                     if mi.mod == mod_6mA
                         push!(mods_6mA, genpos)
                     elseif mi.mod == mod_5mC
@@ -150,16 +272,35 @@ function collectmodsfire(file, chrom, loc; byhap=false, bystrand=false, strictin
                     elseif mi.mod == mod_5hmC
                         push!(mods_5hmC, genpos)
                     end
+                    total_mod += 1
+                else
+                    if mi.mod == mod_6mA
+                        push!(un_mods_6mA, genpos)
+                    elseif mi.mod == mod_5mC
+                        push!(un_mods_5mC, genpos)
+                    elseif mi.mod == mod_5hmC
+                        push!(un_mods_5hmC, genpos)
+                    end
+                    total_unmod += 1
                 end
             end
+
+
+        end
+        push!(mod_threshes, total_mod / (total_mod + total_unmod))
+        if total_mod / (total_mod + total_unmod) > mod_thresh
+            continue
         end
 
         firegenomecoords = firegenome(record, recorddata)
 
         nucs = firegenomecoords(firenucs(record, recorddata))
         msps = firegenomecoords(firemsps(record, recorddata))
+        
+                hap = haplotype(record, recorddata, ifelse(assign_no_hap, ifelse(iseven(k), 0x01, 0x02), 0x00))
 
-        fr = ModFireRead(SMGReader.leftposition(record), SMGReader.rightposition(recorddata), ispositive(record), mods_6mA, mods_5mC, mods_5hmC, collect(nucs), collect(msps), haplotype(record, recorddata, 0x00))
+
+        fr = ModAllFireRead(SMGReader.leftposition(record), SMGReader.rightposition(recorddata), ispositive(record), mods_6mA, mods_5mC, mods_5hmC, un_mods_6mA, un_mods_5mC, un_mods_5hmC, collect(nucs), collect(msps), hap)
         push!(reads, fr)
 
     end
@@ -169,7 +310,7 @@ function collectmodsfire(file, chrom, loc; byhap=false, bystrand=false, strictin
 
     ### now 
     # (; reads, levels)
-    reads
+    reads, mod_threshes
 end
 
 function filterreads(readlevels, filtfun=x -> true, byhap=false)
