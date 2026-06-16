@@ -141,8 +141,7 @@ end
 # fireplot(chrom, loc, firereads; kwargs...) = fireplot(chrom, loc, firereads.reads, firereads.levels; kwargs...)
 
 
-function fireplot(chrom, loc, readdata, leveldata; hap=nothing, strand=nothing, f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), ymax=1.1 * maximum(leveldata))
-    expand_fire = 1
+function fireplot(chrom, loc, readdata, leveldata; hap=nothing, strand=nothing, f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), ymax=1.1 * maximum(leveldata), showlegend=true, expand_fire = 1, rasterize=false)
 
 
     if !isnothing(hap) && !isnothing(strand)
@@ -163,28 +162,32 @@ function fireplot(chrom, loc, readdata, leveldata; hap=nothing, strand=nothing, 
     end
 
 
-    nr = @time mapreduce((l, fr) -> [Rect(start, l + (1 - 0.6) / 2, stop - start, 0.6) for (start, stop) in fr.nucs], vcat, levels, reads)
     lr = @time mapreduce((l, fr) -> [Rect(start, l + (1 - 0.9) / 2, stop - start, 0.9) for (start, stop, q) in fr.msps if q < 0.9 * 255], vcat, levels, reads)
     mr = @time mapreduce((l, fr) -> [Rect(start - (stop - start) * expand_fire, l + (1 - 0.9) / 2, (stop - start) * (1 + expand_fire), 0.9) for (start, stop, q) in fr.msps if q >= 0.9 * 255], vcat, levels, reads)
 
 
-    @show length(nr)
-    @show length(lr)
-    @show length(mr)
+    # @show length(nr)
+    # @show length(lr)
+    # @show length(mr)
 
-    !isempty(nr) && poly!(ax, nr, color=:lightgrey, label="Nucleosome")
-    !isempty(lr) && poly!(ax, lr, color=:dodgerblue, label="Linker")
-    !isempty(mr) && poly!(ax, mr, color=:red, label="FIRE")
+    nr = @time mapreduce((l, fr) -> [Rect(start, l + (1 - 0.6) / 2, stop - start, 0.6) for (start, stop) in fr.nucs], vcat, levels, reads)
+    !isempty(nr) && poly!(ax, nr, color=:lightgrey, label="Nucleosome", rasterize=rasterize)
+    # @show "one nuc"
+    # nr = [Rect(fr.nucs[1][1], l + (1 - 0.6) / 2, fr.nucs[end][2] - fr.nucs[1][1], 0.6) for (fr, l) in zip(reads, levels) if !isempty(fr.nucs)]
+    # !isempty(nr) && poly!(ax, nr, color=:lightgrey, label="Nucleosome")
+
+    !isempty(lr) && poly!(ax, lr, color=:dodgerblue, label="Linker", rasterize=rasterize)
+    !isempty(mr) && poly!(ax, mr, color=:red, label="FIRE", rasterize=rasterize)
 
 
     hidespines!(ax, :l, :t, :r, :b)
     ylims!(ax, 0.0, ymax)
-    axislegend(ax, framevisible=false, position=:rc)
+    showlegend && axislegend(ax, framevisible=false, position=:rc)
     xlims!(ax, first(loc), last(loc))
     f
 end
 
-function modplot(chrom, loc, readdata, leveldata; mod=mod_6mA, hap=nohing, strand=nothing, f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), ymax=1.1 * maximum(leveldata), markersize=4, markeralpha=1.0)
+function modplot(chrom, loc, readdata, leveldata; mod=mod_6mA, hap=nothing, showline=true, validpos=(Set{Int}(), Set{Int}()), strand=nothing, f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), ymax=1.1 * maximum(leveldata), markersize=4, markeralpha=1.0)
 
     if !isnothing(hap) && !isnothing(strand)
         ind = [(r.haplotype == hap) && (r.strand == strand) for r in readdata]
@@ -216,9 +219,75 @@ function modplot(chrom, loc, readdata, leveldata; mod=mod_6mA, hap=nohing, stran
     end
 
     for (fr, l) in zip(reads, levels)
-        lines!(ax, [fr.lp, fr.rp], [l, l], color=c)
+        showline && lines!(ax, [fr.lp, fr.rp], [l, l], color=c)
         data = getproperty(fr, modfield)
+
+        if !isempty(validpos[1])
+
+            if fr.strand
+                data = filter(d -> d ∈ validpos[1], data)
+            else
+                data = filter(d -> d ∈ validpos[2], data)
+            end
+        end
         scatter!(ax, data, fill(l, length(data)), marker=:rect, color=c, markersize=markersize, alpha=markeralpha)
+    end
+
+
+    hidespines!(ax, :l, :t, :r, :b)
+    ylims!(ax, 0, ymax)
+    # axislegend(ax, framevisible=false, position=:rc)
+    xlims!(ax, first(loc), last(loc))
+    f
+end
+
+
+
+function modallplot(chrom, loc, readdata, leveldata; mod=mod_6mA, hap=nothing, strand=nothing, unmod=false, plotline=true, f=Figure(), axv=1, axh=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false, xticks=([], [])), ymax=1.1 * maximum(leveldata), markersize=4, markeralpha=1.0, color=nothing)
+
+    if !isnothing(hap) && !isnothing(strand)
+        ind = [(r.haplotype == hap) && (r.strand == strand) for r in readdata]
+        reads = @view readdata[ind]
+        levels = @view leveldata[ind]
+    elseif !isnothing(hap)
+        hapind = [r.haplotype == hap for r in readdata]
+        reads = @view readdata[hapind]
+        levels = @view leveldata[hapind]
+    elseif !isnothing(strand)
+        strandind = [r.strand == strand for r in readdata]
+        reads = @view readdata[strandind]
+        levels = @view leveldata[strandind]
+    else
+        reads = readdata
+        levels = leveldata
+    end
+
+    if Symbol(mod) == :mod_6mA
+
+        modfield = ifelse(unmod, :un_mods_6mA, :mods_6mA)
+        c = :steelblue
+    elseif Symbol(mod) == :mod_5mC
+        # modfield = :mods_5mC
+        modfield = ifelse(unmod, :un_mods_5mC, :mods_5mC)
+        c = :green
+    elseif Symbol(mod) == :mod_5hmC
+        # modfield = :mods_5hmC
+        modfield = ifelse(unmod, :un_mods_5hmC, :mods_5hmC)
+        c = :orange
+    end
+
+    if color !== nothing
+        c = color
+    end
+
+    for (fr, l) in zip(reads, levels)
+        plotline && lines!(ax, [fr.lp, fr.rp], [l, l], color=c)
+        data = getproperty(fr, modfield)
+        if unmod
+            scatter!(ax, data, fill(l, length(data)), marker=:rect, color=:white, strokecolor=c, strokewidth=1, markersize=markersize * 0.75, alpha=markeralpha)
+        else
+            scatter!(ax, data, fill(l, length(data)), marker=:rect, color=c, markersize=markersize, alpha=markeralpha)
+        end
     end
 
 
@@ -270,13 +339,20 @@ function genefilter(gi)
     end
 end
 
-function plotgenemodels(chrom, loc, giv; f=Figure(), axh=1, axv=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false), vert=true)
+
+function genetext(chrom, loc, iv)
+   
+    
+    
+end
+
+function plotgenemodels(chrom, loc, giv; f=Figure(), axh=1, axv=1, ax=Axis(f[axv, axh], xgridvisible=false, ygridvisible=false), vert=true, genefilt=genefilter, addlevel = Dict{String, Int}())
 
     k = 1
     off = length(loc) * 0.005
 
-    intervals = [gi for gi in eachoverlap(giv, GenomicInterval(chrom, loc)) if genefilter(gi)]
-    @show length(intervals)
+    intervals = [gi for gi in eachoverlap(giv, GenomicInterval(chrom, loc)) if genefilt(gi)]
+    
 
     if isempty(intervals)
         levels = Int[]
@@ -292,11 +368,40 @@ function plotgenemodels(chrom, loc, giv; f=Figure(), axh=1, axv=1, ax=Axis(f[axv
     label_space = 0.2 ### of row_height
     for (iv, l) in zip(intervals, levels)
         data = GenomicFeatures.metadata(iv)
-        # @show data.genename, l
+        @show data.genename, l, strand(iv)
+        l += get(addlevel, data.genename, 0)
         y = l * (row_height + row_spacing)
         lines!(ax, [iv.first, iv.last], [y + row_height / 2, y + row_height / 2], color=:black)
         poly!(ax, [Rect(start, y + row_height * (1 - exon_height) / 2, stop - start, row_height * exon_height) for (start, stop) in zip(data.starts, data.stops)], color=:black)
-        text!(ax, div(iv.first + iv.last, 2), y + row_height * label_space, text=data.genename, align=(:center, :top), fontsize=12)
+        
+        
+        ### mark arrows for direction
+        if (strand(iv) == STRAND_POS) || (strand(iv) == STRAND_NEG)
+            
+            if length(data.stops) == 1
+                ap = [(data.starts[1] + data.stops[1])/2]
+                color = :white
+            else
+                ap = zeros(length(data.stops) - 1)
+                for i = 1:(length(data.stops) - 1)
+                    
+                    if strand(iv) == STRAND_POS
+                        ap[i] = (data.stops[i] + data.starts[i+1])/2
+                    else
+                        ap[i] = (data.starts[i] + data.stops[i+1])/2
+                    end
+                end
+                color = :black
+            end
+
+
+
+            scatter!(ax, ap, fill(y + row_height / 2, length(ap)), marker=strand(iv) == STRAND_POS ? '>' : '<', color=color)
+        end
+        
+        gene_x = div(max(iv.first, first(loc)) + min(iv.last, last(loc)), 2)
+        
+        text!(ax, gene_x, y + row_height * label_space, text=data.genename, align=(:center, :top), fontsize=12)
         # vert && (k += 1)
     end
 
